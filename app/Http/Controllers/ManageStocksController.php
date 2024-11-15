@@ -8,43 +8,81 @@ use Illuminate\Support\Facades\DB;
 
 class ManageStocksController extends Controller
 {
-    public function manageStocks(Request $request)
-    {
-        $search = $request->input('search');  // Capture the search input
-        $page = $request->input('page', 1);   // Capture the current page
-        $perPage = 10;  // Define how many records you want per page
+    // public function manageStocks(Request $request)
+    // {
+    //     $search = $request->input('search');  // Capture the search input
+    //     $page = $request->input('page', 1);   // Capture the current page
+    //     $perPage = 10;  // Define how many records you want per page
     
-        // Query the database with optional search filtering and pagination
-        $books = DB::table('book_m')
-            ->join('book_stock_m', 'book_m.Book_ID', '=', 'book_stock_m.Book_ID')
-            ->select('book_m.Book_ID', 'book_m.Title', 'book_m.language', 'book_stock_m.HSN_Code')
-            ->when($search, function ($query, $search) {
-                return $query->where('book_m.Title', 'like', "%{$search}%");
-            })
-            ->paginate($perPage, ['*'], 'page', $page);
+    //     // Query the database with optional search filtering and pagination
+    //     $books = DB::table('book_m')
+    //         ->join('book_stock_m', 'book_m.Book_ID', '=', 'book_stock_m.Book_ID')
+    //         ->select('book_m.Book_ID', 'book_m.Title', 'book_m.language', 'book_stock_m.HSN_Code')
+    //         ->when($search, function ($query, $search) {
+    //             return $query->where('book_m.Title', 'like', "%{$search}%");
+    //         })
+    //         ->paginate($perPage, ['*'], 'page', $page);
     
-        // Check if this is an AJAX request
-        if ($request->ajax()) {
-            // Format the data for Select2
-            $formattedBooks = $books->map(function ($book) {
-                return [
-                    'id' => $book->Book_ID,
-                    'hsnCode' => $book->HSN_Code,  // The value for the dropdown
-                    'text' => $book->Title . ' - ' . $book->language . ' - ' . $book->HSN_Code  // The display text
-                ];
-            });
+    //     // Check if this is an AJAX request
+    //     if ($request->ajax()) {
+    //         // Format the data for Select2
+    //         $formattedBooks = $books->map(function ($book) {
+    //             return [
+    //                 'id' => $book->Book_ID,
+    //                 'hsnCode' => $book->HSN_Code,  // The value for the dropdown
+    //                 'text' => $book->Title . ' - ' . $book->language . ' - ' . $book->HSN_Code  // The display text
+    //             ];
+    //         });
     
-            // Return JSON response for Select2
-            return response()->json([
-                'results' => $formattedBooks,  // The current page of data
-                'pagination' => ['more' => $books->hasMorePages()]  // Whether there are more pages to load
-            ]);
-        }
+    //         // Return JSON response for Select2
+    //         return response()->json([
+    //             'results' => $formattedBooks,  // The current page of data
+    //             'pagination' => ['more' => $books->hasMorePages()]  // Whether there are more pages to load
+    //         ]);
+    //     }
     
-        // For non-AJAX requests, return the full HTML view with the initial set of books
-        return view('layouts/manageStocks', compact('books'));
+    //     // For non-AJAX requests, return the full HTML view with the initial set of books
+    //     return view('layouts/manageStocks', compact('books'));
+    // }
+    
+// STORED PROCEDURE EXAMPLE
+public function manageStocks(Request $request)
+{
+    $search = $request->input('search', '0');  // Default to '0' if no search input is provided
+    $page = $request->input('page', 1);   // Capture the current page
+    $perPage = 10;  // Define how many records you want per page
+
+    // Execute the stored procedure
+    // $books = DB::select('CALL Get_Book_New(?)', [$search]);
+    
+    $books = DB::select('CALL Get_Book_New(:p_booktitle)', [
+        'p_booktitle' => $search
+    ]);
+
+    // Convert the result to a collection and paginate manually
+    $booksCollection = collect($books);
+    $paginatedBooks = $booksCollection->forPage($page, $perPage);
+
+    // Check if this is an AJAX request
+    if ($request->ajax()) {
+        // Format the data for Select2
+        $formattedBooks = $paginatedBooks->map(function ($book) {
+            return [
+                'id' => $book->Book_ID,
+                'text' => $book->Title // The display text
+            ];
+        });
+
+        // Return JSON response for Select2
+        return response()->json([
+            'results' => $formattedBooks,  // The current page of data
+            'pagination' => ['more' => $booksCollection->count() > $page * $perPage]  // Whether there are more pages to load
+        ]);
     }
-    
+
+    // For non-AJAX requests, return the full HTML view with the initial set of books
+    return view('layouts.manageStocks', ['books' => $paginatedBooks]);
+}
     public function getBookDetails(Request $request)
     {
         // Get the selected book ID from the request

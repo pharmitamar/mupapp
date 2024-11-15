@@ -27,3 +27,9 @@ Route::post('/dashboard/store', [DashboardController::class, 'store'])->name('da
 
 
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+Route::get('/getBillTypes', [ManageSaleEntryController::class, 'getBillTypes'])->name('getBillTypes');
+
+Route::get('/getCustomers', [ManageSaleEntryController::class, 'getCustomers'])->name('customers.data');
+
+Route::get('/getCustomerDetails', [ManageSaleEntryController::class, 'getCustomerDetails'])->name('customer.details');

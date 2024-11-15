@@ -78,8 +78,14 @@
                                             <option selected disabled>Select Book</option>
                                             <!-- Initial data load -->
                                             @foreach($books as $book)
-                                                <option value="{{ $book->Book_ID }}">{{ $book->Title }} - {{ $book->language }} - {{ $book->HSN_Code }}</option>
+                                                <option value="{{ $book->Book_ID }}">{{ $book->Title }} - {{ $book->language }}</option>
                                             @endforeach
+                            {{-- STORED PROCEDURE EXAMPLE --}}
+                                            {{-- @foreach($books as $book)
+                                                <option value="{{ $book->Book_ID }}">
+                                                    {{ $book->Title }} - {{ $book->Description }} - {{ $book->HSN_Code }}
+                                                </option>
+                                            @endforeach --}}
                                         </select>
                                     </div>
                                 </div>
